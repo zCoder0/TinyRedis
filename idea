@@ -1,0 +1,300 @@
+# Tiny Redis – Project Roadmap
+
+## Objective
+
+Build a simplified version of Redis to understand:
+
+* Command parsing
+* Hash table (dictionary) data structures
+* O(1) lookup operations
+* Database engine design
+* Persistence
+* Software architecture
+
+---
+
+# Phase 1 – Storage Engine
+
+The Storage Engine is the **heart of Redis**.
+
+Internally, the database stores data as a Python dictionary.
+
+```python
+storage = {}
+```
+
+### Supported Commands
+
+```text
+SET name Batman
+GET name
+DEL name
+EXISTS name
+KEYS
+FLUSHALL
+```
+
+### Example
+
+User enters:
+
+```text
+SET age 22
+```
+
+Stored internally:
+
+```python
+storage["age"] = "22"
+```
+
+Another example:
+
+```text
+SET website thaagam.org
+SET counter 10
+```
+
+Internal structure:
+
+```python
+{
+    "age": "22",
+    "website": "thaagam.org",
+    "counter": "10"
+}
+```
+
+---
+
+## Time Complexity
+
+| Operation | Complexity |
+| --------- | ---------- |
+| SET       | O(1)       |
+| GET       | O(1)       |
+| DEL       | O(1)       |
+| EXISTS    | O(1)       |
+| KEYS      | O(n)       |
+| FLUSHALL  | O(n)       |
+
+---
+
+# Phase 2 – Command Parser
+
+The parser converts raw user input into commands that the storage engine understands.
+
+### User Input
+
+```text
+SET age 22
+```
+
+Python receives:
+
+```python
+command = input()
+```
+
+Parser output:
+
+```python
+["SET", "age", "22"]
+```
+
+---
+
+## Input Cases to Handle
+
+The parser should correctly handle or reject different formats.
+
+Valid examples:
+
+```text
+SET age 22
+SET age -22
+SET age +22
+SET website thaagam.org
+SET user:1 Batman
+SET counter 100
+```
+
+Edge cases:
+
+```text
+SET [age] 22
+SET -age +22
+SET name premraj sivakumar
+SET name premraj-sivakumar
+SET premraj-sivakumar name
+SET premraj sivakumar name
+name SET premraj
+```
+
+Think about which inputs should be accepted and which should return an error.
+
+---
+
+# Storage Engine Responsibilities
+
+The Storage Engine should expose methods such as:
+
+```python
+add_data()
+get_data()
+delete_data()
+edit_data()
+is_key_exist()
+list_keys()
+flushall()
+save_all()
+```
+
+---
+
+# Example Database
+
+Commands
+
+```text
+SET user:1 {...}
+SET user:2 {...}
+SET session:abc123 {...}
+SET counter 10
+SET website thaagam.org
+```
+
+Internal storage
+
+```python
+{
+    "user:1": {...},
+    "user:2": {...},
+    "session:abc123": {...},
+    "counter": "10",
+    "website": "thaagam.org"
+}
+```
+
+Notice that Redis stores everything using a **Key → Value** structure.
+
+---
+
+# Development Goals
+
+## Phase 1
+
+* [x] SET
+* [x] GET
+* [x] DEL
+* [x] EXISTS
+* [x] KEYS
+* [x] FLUSHALL
+* [x] SAVE
+* [x] LOAD
+
+---
+
+## Phase 2
+
+Improve the parser.
+
+Goals:
+
+* Better input validation
+* Better error messages
+* Support quoted strings
+* Support JSON values
+* Support values containing spaces
+
+Example:
+
+```text
+SET user:1 {"name":"Batman","age":22}
+```
+
+The parser should return:
+
+```python
+[
+    "SET",
+    "user:1",
+    '{"name":"Batman","age":22}'
+]
+```
+
+instead of splitting the JSON incorrectly.
+
+---
+
+## Phase 3
+
+Support additional Redis data types.
+
+Examples:
+
+* Hashes
+* Lists
+* Sets
+* Sorted Sets
+
+---
+
+## Phase 4
+
+Persistence
+
+Instead of saving the entire database every time:
+
+```python
+save(storage)
+```
+
+explore techniques such as:
+
+* Append-only logs
+* Snapshots
+* Background saves
+
+This is how real Redis minimizes disk writes while maintaining high performance.
+
+---
+
+## Phase 5
+
+Networking
+
+Instead of using:
+
+```python
+input()
+```
+
+accept connections over TCP so clients can communicate with your Tiny Redis server just like the real Redis server.
+
+---
+
+## Final Goal
+
+By the end of this project, you'll understand how a real in-memory database is designed, including:
+
+* Command parsing
+* Storage engines
+* Data structures
+* Persistence
+* Networking
+* Performance optimization
+
+
+SET name Batman EX 60
+SET name Batman EX 60
+
+redis_data={
+    "name": "premrajan",
+    "user:1": "{\"id\":1,\"name\":\"premam\"}",
+    "city": "tamilnadu"
+}
+
+expiry={
+    "premrajan":(60,current_time)
+}
