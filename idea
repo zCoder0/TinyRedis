@@ -298,3 +298,68 @@ redis_data={
 expiry={
     "premrajan":(60,current_time)
 }
+
+
+Phase 2
+
+1. Append
+2.STRLen
+3.Type
+
+1. TTL
+
+    => SET age 22 EX 10
+    => TTL age
+
+    Result
+        => 7
+
+2. APPEND
+
+    => SET name Batman
+    => APPEND name Raj
+
+    Result
+        => BatmanRaj
+
+3. STRLEN
+    => STRLEN website
+
+    Result
+        => 11
+
+4. TYPE
+    => TYPE age
+
+    Result
+        => string
+
+    later it will support:
+        list
+        set
+        hash
+
+5. PERSIST
+
+    => SET age 22 EX 20
+
+    => PERSIST age
+    Removes expiration.
+
+Now we want to modify the db strucutre
+
+{
+    "user":{
+        "type":"string",
+        "value":"Batman"
+    },
+
+    "tasks":{
+        "type":"list",
+        "value":[
+            "Python",
+            "Django",
+            "Redis"
+        ]
+    }
+}

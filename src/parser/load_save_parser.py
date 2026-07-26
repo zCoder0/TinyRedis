@@ -1,5 +1,6 @@
 import json
-
+from src.exception import ProjectException
+import sys 
 def load(path):
 
     try:
@@ -8,7 +9,7 @@ def load(path):
         return data
     
     except Exception as e:
-        print("Error: ",e)
+        print(ProjectException(e,sys))
 
 def save(path,data):
 
@@ -19,4 +20,5 @@ def save(path,data):
         print("Successfully saved!...")
         return True
     except Exception as e:
-        print("Error: ",e)
+        print(ProjectException(e,sys))
+        
