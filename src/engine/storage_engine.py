@@ -4,6 +4,7 @@ from src.config import Settings
 import threading
 import json,sys
 from src.exception import ProjectException
+from src.engine.redis_value import RedisValue
 
 class StorageEngine:
 
@@ -54,7 +55,10 @@ class StorageEngine:
                         break
                     key_detail.append(key)
 
-            self.redis_data.update(dict_data)
+            for key,value in dict_data.items():
+                redis_value = RedisValue(value)
+                self.redis_data[key] = redis_value.to_dict()
+
             return self.save_all()
         
         except Exception as e:
@@ -97,13 +101,13 @@ class StorageEngine:
     def incr(self,key):
         try:
             if not self.is_key_exist(key):
-                print("Not exists")
-                return None 
+                return -2
 
             val=self.redis_data[key]
-            if isinstance(val, int):
-                self.redis_data[key]= (val+1)
+            if val.get('type') == 'integer':
+                val['value']+=1
                 return save(self.redis_data_path,self.redis_data)
+            return -2
         except Exception as e:
             print(ProjectException(e,sys))
             
@@ -113,9 +117,10 @@ class StorageEngine:
                 print("Not exists")
                 return None 
             val=self.redis_data[key]
-            if isinstance(val, int):
-                self.redis_data[key]= (val-1)
+            if val.get('type') == 'integer':
+                val['value']-=1
                 return save(self.redis_data_path,self.redis_data)
+            return -2
         except Exception as e:
             print(ProjectException(e,sys))
             
@@ -163,22 +168,25 @@ class StorageEngine:
     def append(self,data):
         try:
             dict_data = dict(zip(data[::2], data[1::2])) 
-            
+
+            for k,v in dict_data.items():
+                dict_data[k] = self._normalize_value(val=v)
+        
             for k in dict_data.keys():
                 if self.redis_data.get(k):
-                    if  isinstance(self.redis_data[k], str):
-                        self.redis_data[k] += str(dict_data[k])
+                    if self.redis_data[k].get('type') =='string':
+                        self.redis_data[k]['value'] += dict_data[k]
                     else:
                         return False
                 else:
-                    self.redis_data[k] = dict_data[k]
+                    redis_value = RedisValue(dict_data[k])
+                    self.redis_data[k] = redis_value.to_dict()
 
             return save(self.redis_data_path ,self.redis_data)
         except Exception as e:
             print(ProjectException(e,sys))
 
     def process(self,data:list):
-
         try:
             if data[0] == 'set':
                 if (len(data)-1)%2 !=0 or len(data) == 1:
@@ -225,17 +233,15 @@ class StorageEngine:
                 if not self.is_key_exist(data[1]):
                     return -2
 
-                if isinstance(self.redis_data[data[1]],str):
-                    return len(self.redis_data[data[1]])
+                if self.redis_data[data[1]].get('type') == 'string':
+                    return len(self.redis_data[data[1]].get('value'))
+                
                 return -1
 
             elif data[0] == 'type':
-                if len(data) == 1:
-                    print("Invalid Input")
-                    return 
                 if not self.is_key_exist(data[1]):
                     return -2
-                return type(self.redis_data[data[1]]).__name__ 
+                return self.redis_data[data[1]].get('type')
 
         except Exception as e:
             print(ProjectException(e,sys))
