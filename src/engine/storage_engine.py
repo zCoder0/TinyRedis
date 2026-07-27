@@ -261,7 +261,7 @@ class StorageEngine:
             elif data[0] == 'rpush':
                 if len(data) < 3:
                     return "Invalid Input"
-                key, value = data[1], self._normalize_value(data[2])
+                key = data[1]
                 if not self.is_key_exist(key):
                     dll = DoublyLinkedList()
                     self.list_values[key] = dll
@@ -269,13 +269,15 @@ class StorageEngine:
                 elif self.redis_data[key].get("type") != "list":
                     return "WRONG_TYPE Operation against a key holding the wrong kind of value"
                 dll = self.list_values[key]
-                dll.rpush(value)
+                for value in data[2:]:
+                    dll.rpush(self._normalize_value(value))
                 return self.save_all()
 
             elif data[0] == 'lpush':
                 if len(data) < 3:
                     return "Invalid Input"
-                key, value = data[1], self._normalize_value(data[2])
+                key = data[1]
+
                 if not self.is_key_exist(key):
                     dll = DoublyLinkedList()
                     self.list_values[key] = dll
@@ -283,7 +285,8 @@ class StorageEngine:
                 elif self.redis_data[key].get("type") != "list":
                     return "WRONG_TYPE Operation against a key holding the wrong kind of value"
                 dll = self.list_values[key]
-                dll.lpush(value)
+                for value in data[2:]:
+                    dll.lpush(self._normalize_value(value))
                 return self.save_all()
 
             elif data[0] == 'lpop':
