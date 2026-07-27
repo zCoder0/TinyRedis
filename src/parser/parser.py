@@ -2,7 +2,7 @@ import re
 class Parser:
     def __init__(self):
         self.commands = ['set', 'get', 'del','keys','flushall','exists','incr','decr','ttl','append','strlen'
-                         ,'type','persist']
+                         ,'type','persist','rpush','lpush','lpop','rpop','lrange']
 
     def _clean_text(self, text: str):
         text = text.lower()

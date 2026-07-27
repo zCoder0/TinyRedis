@@ -15,6 +15,9 @@ class RedisValue:
         elif isinstance(value,float):
             return "float"
 
+        elif isinstance(value,list):
+            return "list"
+        
         else:
             return "unknown"
 

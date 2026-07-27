@@ -6,6 +6,8 @@ import json,sys
 from src.exception import ProjectException
 from src.engine.redis_value import RedisValue
 
+from src.engine.linked_list import DoublyLinkedList
+
 class StorageEngine:
 
     def __init__(self):
@@ -16,9 +18,18 @@ class StorageEngine:
         self.redis_expiry_data_path =Settings.expiry_data_path
         self._expiry_lock = threading.Lock()
         self._timer = None
+        self.list_values = {}
+        for key, val in self.redis_data.items():
+            if val.get("type") == "list":
+                dll = DoublyLinkedList()
+                for item in val.get("value", []):
+                    dll.rpush(item)
+                self.list_values[key] = dll
         self.run_expiry_thread()
 
     def save_all(self):
+        for key, dll in self.list_values.items():
+            self.redis_data[key]["value"] = dll.to_list()
         return (save(self.redis_data_path, self.redis_data) and 
                 save(self.redis_expiry_data_path , self.redis_expiry_data)
                 )
@@ -70,6 +81,7 @@ class StorageEngine:
                 return -2 
             
             poped_data = self.redis_data.pop(key)
+            self.list_values.pop(key, None)
             if key in self.redis_expiry_data.keys():
                 self.redis_expiry_data.pop(key)
             print(f"Deleted sucessfully {key}:{poped_data}")
@@ -94,6 +106,7 @@ class StorageEngine:
         try:
             self.redis_data.clear()
             self.redis_expiry_data.clear()
+            self.list_values.clear()
             return self.save_all()
         except Exception as e:
             print(ProjectException(e,sys))
@@ -126,6 +139,8 @@ class StorageEngine:
             
     def _silent_save(self):
         try:
+            for key, dll in self.list_values.items():
+                self.redis_data[key]["value"] = dll.to_list()
             with open(self.redis_data_path, 'w', encoding="utf8") as f:
                 json.dump(self.redis_data, f, indent=4)
             with open(self.redis_expiry_data_path, 'w', encoding="utf8") as f:
@@ -243,6 +258,88 @@ class StorageEngine:
                     return -2
                 return self.redis_data[data[1]].get('type')
 
+            elif data[0] == 'rpush':
+                if len(data) < 3:
+                    return "Invalid Input"
+                key, value = data[1], self._normalize_value(data[2])
+                if not self.is_key_exist(key):
+                    dll = DoublyLinkedList()
+                    self.list_values[key] = dll
+                    self.redis_data[key] = {"type": "list", "value": []}
+                elif self.redis_data[key].get("type") != "list":
+                    return "WRONG_TYPE Operation against a key holding the wrong kind of value"
+                dll = self.list_values[key]
+                dll.rpush(value)
+                return self.save_all()
+
+            elif data[0] == 'lpush':
+                if len(data) < 3:
+                    return "Invalid Input"
+                key, value = data[1], self._normalize_value(data[2])
+                if not self.is_key_exist(key):
+                    dll = DoublyLinkedList()
+                    self.list_values[key] = dll
+                    self.redis_data[key] = {"type": "list", "value": []}
+                elif self.redis_data[key].get("type") != "list":
+                    return "WRONG_TYPE Operation against a key holding the wrong kind of value"
+                dll = self.list_values[key]
+                dll.lpush(value)
+                return self.save_all()
+
+            elif data[0] == 'lpop':
+                if len(data) < 2:
+                    return "Invalid Input"
+                key = data[1]
+                if not self.is_key_exist(key):
+                    return -2
+                if self.redis_data[key].get("type") != "list":
+                    return "WRONG_TYPE Operation against a key holding the wrong kind of value"
+                dll = self.list_values[key]
+                value = dll.lpop()
+                if dll.head is None:
+                    self.list_values.pop(key, None)
+                    self.redis_data.pop(key, None)
+                    self.redis_expiry_data.pop(key, None)
+                return self.save_all() and value
+
+            elif data[0] == 'rpop':
+                if len(data) < 2:
+                    return "Invalid Input"
+                key = data[1]
+                if not self.is_key_exist(key):
+                    return -2
+                if self.redis_data[key].get("type") != "list":
+                    return "WRONG_TYPE Operation against a key holding the wrong kind of value"
+                dll = self.list_values[key]
+                value = dll.rpop()
+                if dll.head is None:
+                    self.list_values.pop(key, None)
+                    self.redis_data.pop(key, None)
+                    self.redis_expiry_data.pop(key, None)
+                return self.save_all() and value
+
+            elif data[0] == 'lrange':
+                if len(data) < 4:
+                    return "Invalid Input"
+                key = data[1]
+                if not self.is_key_exist(key):
+                    return -2
+                if self.redis_data[key].get("type") != "list":
+                    return "WRONG_TYPE Operation against a key holding the wrong kind of value"
+                dll = self.list_values[key]
+                items = dll.to_list()
+                length = len(items)
+                start = self._normalize_value(data[2])
+                stop = self._normalize_value(data[3])
+                if not isinstance(start, int) or not isinstance(stop, int):
+                    return "Invalid Input"
+                if start < 0:
+                    start = max(length + start, 0)
+                if stop < 0:
+                    stop = max(length + stop, 0)
+                if start >= length or start > stop:
+                    return []
+                stop = min(stop, length - 1)
+                return items[start:stop + 1]
         except Exception as e:
             print(ProjectException(e,sys))
-            

@@ -72,4 +72,12 @@ class DoublyLinkedList:
             self.tail.next = None
 
         return poped_data.data
+
+    def to_list(self):
+        result = []
+        current = self.head
+        while current:
+            result.append(current.data)
+            current = current.next
+        return result
     
