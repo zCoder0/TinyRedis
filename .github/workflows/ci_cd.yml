@@ -1,0 +1,23 @@
+name: TinyRedis CI Python
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+
+  Deploy:
+
+    runs-on: ubuntu
+    steps:
+      - name: "Github actions" 
+        uses: actions/checkout@v4
+      
+      - name: "Use python"
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      
+      - name: "Echo message"
+        run: echo "Success!"
