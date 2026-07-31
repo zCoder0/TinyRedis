@@ -9,7 +9,7 @@ jobs:
 
   Deploy:
 
-    runs-on: ubuntu
+    runs-on: ubuntu-latest
     steps:
       - name: "Github actions" 
         uses: actions/checkout@v4
