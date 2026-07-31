@@ -19,5 +19,18 @@ jobs:
         with:
           python-version: "3.12"
       
+      - name: "Create python venv"
+        run: |
+          python -m venv .venv
+        
+      - name: "Run Requirements"
+        run: |
+          source .venv/bin/activate
+          pip install -r requirements.txt
+
+      - name: "Run testcses"
+        run: |
+          python -m pytest tests
+      
       - name: "Echo message"
         run: echo "Success!"
